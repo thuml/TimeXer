@@ -22,9 +22,13 @@ def adjust_learning_rate(optimizer, epoch, args):
         }
     if epoch in lr_adjust.keys():
         lr = lr_adjust[epoch]
+        factor = lr / args.learning_rate if args.learning_rate > 0 else 1.0
         for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
-        print('Updating learning rate to {}'.format(lr))
+            if 'initial_lr' in param_group:
+                param_group['lr'] = param_group['initial_lr'] * factor
+            else:
+                param_group['lr'] = lr
+        print('Updating learning rate with base factor {:.4f} (base lr: {})'.format(factor, lr))
 
 
 class EarlyStopping:
@@ -34,7 +38,7 @@ class EarlyStopping:
         self.counter = 0
         self.best_score = None
         self.early_stop = False
-        self.val_loss_min = np.Inf
+        self.val_loss_min = np.inf
         self.delta = delta
 
     def __call__(self, val_loss, model, path):

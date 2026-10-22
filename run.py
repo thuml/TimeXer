@@ -11,11 +11,6 @@ import random
 import numpy as np
 
 if __name__ == '__main__':
-    fix_seed = 2021
-    random.seed(fix_seed)
-    torch.manual_seed(fix_seed)
-    np.random.seed(fix_seed)
-
     parser = argparse.ArgumentParser(description='TimesNet')
 
     # basic config
@@ -48,7 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('--mask_rate', type=float, default=0.25, help='mask ratio')
 
     # anomaly detection task
-    parser.add_argument('--anomaly_ratio', type=float, default=0.25, help='prior anomaly ratio (%)')
+    parser.add_argument('--anomaly_ratio', type=float, default=0.25, help='prior anomaly ratio (%%)')
 
     # model define
     parser.add_argument('--expand', type=int, default=2, help='expansion factor for Mamba')
@@ -86,7 +81,7 @@ if __name__ == '__main__':
                         help='the length of segmen-wise iteration of SegRNN')
 
     # optimization
-    parser.add_argument('--num_workers', type=int, default=10, help='data loader num workers')
+    parser.add_argument('--num_workers', type=int, default=0, help='data loader num workers')
     parser.add_argument('--itr', type=int, default=1, help='experiments times')
     parser.add_argument('--train_epochs', type=int, default=10, help='train epochs')
     parser.add_argument('--batch_size', type=int, default=32, help='batch size of train input data')
@@ -114,7 +109,7 @@ if __name__ == '__main__':
 
     # Augmentation
     parser.add_argument('--augmentation_ratio', type=int, default=0, help="How many times to augment")
-    parser.add_argument('--seed', type=int, default=2, help="Randomization seed")
+    parser.add_argument('--seed', type=int, default=2021, help="Randomization seed")
     parser.add_argument('--jitter', default=False, action="store_true", help="Jitter preset augmentation")
     parser.add_argument('--scaling', default=False, action="store_true", help="Scaling preset augmentation")
     parser.add_argument('--permutation', default=False, action="store_true",
@@ -139,7 +134,22 @@ if __name__ == '__main__':
     # TimeXer
     parser.add_argument('--patch_len', type=int, default=16, help='patch length')
 
+    # TimeXer-DINOv3
+    parser.add_argument('--dino_model_name', type=str, default='vit_small_patch16_dinov3', help='DINOv3 model name in timm')
+    parser.add_argument('--dino_img_size', type=int, default=176, help='spatial 2D image dimension')
+    parser.add_argument('--dino_freeze', type=str, default='all', choices=['all', 'partial', 'lora', 'none'], help='DINOv3 backbone freezing regime')
+    parser.add_argument('--dino_lr', type=float, default=1e-5, help='learning rate for DINOv3 backbone parameters')
+    parser.add_argument('--period_len', type=int, default=24, help='fundamental period length for 2D periodic folding map')
+    parser.add_argument('--use_pooled_bottleneck', type=int, default=1, choices=[0, 1], help='whether to pool spatial patch tokens before FlattenHead (1: True, 0: False)')
+    parser.add_argument('--post_e_layers', type=int, default=1, help='num of post-fusion encoder layers')
+
     args = parser.parse_args()
+    args.use_pooled_bottleneck = bool(args.use_pooled_bottleneck)
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
     # args.use_gpu = True if torch.cuda.is_available() and args.use_gpu else False
     args.use_gpu = True if torch.cuda.is_available() else False
 

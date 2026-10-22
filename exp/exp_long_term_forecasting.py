@@ -29,7 +29,33 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return data_set, data_loader
 
     def _select_optimizer(self):
-        model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate)
+        if self.args.model == 'TimeXer_DINOv3':
+            # Unpack model if DataParallel wrapped
+            model = self.model.module if hasattr(self.model, 'module') else self.model
+
+            dino_params = [p for p in model.dino_backbone.parameters() if p.requires_grad]
+            dino_param_ids = set(id(p) for p in dino_params)
+            other_params = [p for p in model.parameters() if p.requires_grad and id(p) not in dino_param_ids]
+
+            param_groups = []
+            if other_params:
+                param_groups.append({
+                    'params': other_params,
+                    'lr': self.args.learning_rate,
+                    'initial_lr': self.args.learning_rate,
+                    'weight_decay': getattr(self.args, 'weight_decay', 1e-2)
+                })
+            if dino_params:
+                dino_lr = getattr(self.args, 'dino_lr', 1e-5)
+                param_groups.append({
+                    'params': dino_params,
+                    'lr': dino_lr,
+                    'initial_lr': dino_lr,
+                    'weight_decay': getattr(self.args, 'weight_decay', 1e-2)
+                })
+            model_optim = optim.AdamW(param_groups)
+        else:
+            model_optim = optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.args.learning_rate)
         return model_optim
 
     def _select_criterion(self):

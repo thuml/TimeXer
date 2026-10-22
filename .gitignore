@@ -1,0 +1,15 @@
+.venv
+/dataset
+__pycache__/
+./**/*.pyc
+/checkpoints
+checkpoints/
+*.pth
+crawl_data_private/
+app/frontend/node_modules/
+app/frontend/dist/
+
+# Results filtering: only track DINOv3 results
+test_results/
+results/*
+!results/*DINOv3*
